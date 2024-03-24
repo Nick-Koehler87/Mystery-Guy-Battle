@@ -26,11 +26,11 @@ public class thirdPersonCam : NetworkBehaviour
     }
 
     // Update is called once per frame
-    private void RunNetworkUpdate() { 
+    private void FixedUpdate() { 
         
         if (!IsOwner) return; 
         Vector3 viewDir = player.position - new Vector3(transform.position.x, player.position.y, transform.position.z);
-        orientation.forward = viewDir.normalized;
+        orientationServerRpc(viewDir);
         float horizontalInput = Input.GetAxis("Horizontal");
         float VerticalInput = Input.GetAxis("Vertical");    
         //inputDir = 
@@ -45,13 +45,11 @@ public class thirdPersonCam : NetworkBehaviour
     private void updateServerRpc(float horizontalInput, float VerticalInput) {   
         
         Vector3 inputDir = orientation.forward * VerticalInput + orientation.right * horizontalInput;
-        playerObj.forward = inputDir;
-        
-        //Vector3.Slerp(playerObj.forward, inputDir.normalized, Time.deltaTime * rotationSpeed);
+        playerObj.forward = Vector3.Slerp(playerObj.forward, inputDir.normalized, Time.deltaTime * rotationSpeed);
     }
 
     [ServerRpc]
-    private void LogServerRpc() {
-        Debug.Log("Made it to the rpc");
+    private void orientationServerRpc(Vector3 viewDir) {
+        orientation.forward = viewDir.normalized;
     }
 }
