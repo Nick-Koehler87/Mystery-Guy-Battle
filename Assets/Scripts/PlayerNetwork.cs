@@ -6,74 +6,80 @@ using UnityEngine;
 
 public class PlayerNetwork : NetworkBehaviour
 {
-    [Header("Movement")]
-    public Rigidbody rb;
-    public Transform orientation;
+    // utility
+    System.Random random = new System.Random();
+
+    [Header("Movement Set Value")]
     public float moveSpeed;
-    Vector3 moveDir;
     public float rotationSpeed;
-    public Vector3 inputDir;
     
     [Header("References")]
     public Transform player;
     public Transform playerObj;
+    public Rigidbody rb;
+    public Transform orientation;
     
     [Header("Cam/Sound")]
     [SerializeField] private CinemachineFreeLook vc;
     [SerializeField] private AudioListener audio;
 
-
-    [Header("Spawning")]
-    public string spawnpointTag = "SpawnPoint";
-
-    // utility
-    System.Random random = new System.Random();
-
     public override void OnNetworkSpawn () {
+
+        // if owner 
         if (IsOwner) {
+            // set all the things
             rb = GetComponent<Rigidbody>();
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            // this is here so that you only hear from your pos and not from another client
             audio.enabled = true;
+            // enables correct camera 
             vc.Priority = 1;
-            
+            // spawnpoint function 
             spawning();
-            
         } else {
+            // if not owner disable camera for this client
             vc.Priority = 0;
         }
         
     }
 
     private void FixedUpdate() {
+        // if not owner, exit
         if (!IsOwner) return; 
+
+        // get input 
         float horizontalInput = Input.GetAxis("Horizontal");
         float VerticalInput = Input.GetAxis("Vertical"); 
-        updateServerRpc(horizontalInput, VerticalInput);
-    }
-
-    private void myInput() {
+        Vector3 inputDir = orientation.forward * VerticalInput + orientation.right * horizontalInput;
         
+        // if input call rpc
+        if (inputDir != Vector3.zero) {
+            updateServerRpc(inputDir);
+        }
     }
 
     [ServerRpc]
-    private void updateServerRpc(float horizontalInput, float VerticalInput) {
-        
-        inputDir = orientation.forward * VerticalInput + orientation.right * horizontalInput;
+    private void updateServerRpc(Vector3 inputDir) {
+        // update force on server
+        rb.AddForce(inputDir * moveSpeed * 10f, ForceMode.Force);
 
-        if (inputDir != Vector3.zero) {
-            rb.AddForce(inputDir * moveSpeed * 10f, ForceMode.Force);
-        }    
+        // todo 
+        // add max speed
+        // add friction
+        // add jump
     }
 
     
 
     private void spawning() {
-            GameObject[] spawnpoints = GameObject.FindGameObjectsWithTag(spawnpointTag);
+        // creates array of all objects with spawn point tag 
+        // then randomly selects one and sets the transform to the spawnpoints pos
+        string spawnpointTag = "SpawnPoint";
 
-            int randomNumber = random.Next(0, 2);
+        GameObject[] spawnpoints = GameObject.FindGameObjectsWithTag(spawnpointTag);
 
-            transform.position = spawnpoints[randomNumber].transform.position;
+        int randomNumber = random.Next(0, spawnpoints.Length);
+
+        transform.position = spawnpoints[randomNumber].transform.position;
     }
 
 }
