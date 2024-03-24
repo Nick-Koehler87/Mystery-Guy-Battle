@@ -15,7 +15,6 @@ public class thirdPersonCam : NetworkBehaviour
     GameObject playerObject;
     public Rigidbody rb;
     public float rotationSpeed;
-    //public Vector3 inputDir;
 
     // Start is called before the first frame update
     public override void OnNetworkSpawn () {
@@ -30,26 +29,24 @@ public class thirdPersonCam : NetworkBehaviour
         
         if (!IsOwner) return; 
         Vector3 viewDir = player.position - new Vector3(transform.position.x, player.position.y, transform.position.z);
-        orientationServerRpc(viewDir);
         float horizontalInput = Input.GetAxis("Horizontal");
-        float VerticalInput = Input.GetAxis("Vertical");    
-        //inputDir = 
-        updateServerRpc(horizontalInput, VerticalInput);
-        /*if (inputDir != Vector3.zero) {
-           
-        } */  
+        float VerticalInput = Input.GetAxis("Vertical");  
+        float move = horizontalInput + VerticalInput;
+        if (move != 0) {
+            updateServerRpc(horizontalInput, VerticalInput, viewDir);
+        } 
 
         
     } 
     [ServerRpc]
-    private void updateServerRpc(float horizontalInput, float VerticalInput) {   
+    private void updateServerRpc(float horizontalInput, float VerticalInput, Vector3 viewDir) {   
         
+        orientation.forward = viewDir.normalized;
         Vector3 inputDir = orientation.forward * VerticalInput + orientation.right * horizontalInput;
         playerObj.forward = Vector3.Slerp(playerObj.forward, inputDir.normalized, Time.deltaTime * rotationSpeed);
     }
 
     [ServerRpc]
     private void orientationServerRpc(Vector3 viewDir) {
-        orientation.forward = viewDir.normalized;
     }
 }
